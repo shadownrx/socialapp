@@ -20,7 +20,7 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "Lyk",
-  description: "A modern social media application powered by Next.js",
+  description: "Comparte tus fotos, recibe likes y personaliza tu espacio. Bienvenido a LyK.",
 };
 
 export default function RootLayout({
