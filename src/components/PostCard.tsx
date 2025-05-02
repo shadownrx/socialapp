@@ -1,6 +1,6 @@
 "use client";
 
-import { createComment, deletePost, getPosts, toggleLike } from "@/actions/post.action";
+import { createComment, deletePost, deleteComment, getPosts, toggleLike } from "@/actions/post.action";
 import { SignInButton, useUser } from "@clerk/nextjs";
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -10,8 +10,9 @@ import { Avatar, AvatarImage } from "./ui/avatar";
 import { formatDistanceToNow } from "date-fns";
 import { DeleteAlertDialog } from "./DeleteAlertDialog";
 import { Button } from "./ui/button";
-import { HeartIcon, LogInIcon, MessageCircleIcon, SendIcon } from "lucide-react";
+import { HeartIcon, LogInIcon, MessageCircleIcon, SendIcon, DeleteIcon } from "lucide-react";
 import { Textarea } from "./ui/textarea";
+import { Dialog, DialogContent, DialogTitle, DialogActions } from "./ui/dialog"; // Importar el Dialog para la confirmación
 
 type Posts = Awaited<ReturnType<typeof getPosts>>;
 type Post = Posts[number];
@@ -25,6 +26,8 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
   const [hasLiked, setHasLiked] = useState(post.likes.some((like) => like.userId === dbUserId));
   const [optimisticLikes, setOptmisticLikes] = useState(post._count.likes);
   const [showComments, setShowComments] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState<string | null>(null); // Estado para el comentario a eliminar
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false); // Estado para controlar el diálogo de confirmación
 
   const handleLike = async () => {
     if (isLiking) return;
@@ -71,6 +74,30 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
     }
   };
 
+  const handleDeleteComment = async () => {
+    if (!commentToDelete) return;
+
+    try {
+      setIsDeleting(true);
+      // Realizamos la eliminación del comentario
+      const result = await deleteComment(commentToDelete);
+
+      if (result.success) {
+        // Eliminar comentario de manera optimista
+        toast.success("Comment deleted successfully");
+        // Actualizar los comentarios eliminando el comentario correspondiente
+        setShowComments((prev) => !prev); // Para cerrar los comentarios, se puede ajustar según necesidad
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      toast.error("Failed to delete comment");
+    } finally {
+      setIsDeleting(false);
+      setIsConfirmingDelete(false); // Cerrar el diálogo de confirmación
+    }
+  };
+
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-4 sm:p-6">
@@ -86,10 +113,7 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 truncate">
-                  <Link
-                    href={`/profile/${post.author.username}`}
-                    className="font-semibold truncate"
-                  >
+                  <Link href={`/profile/${post.author.username}`} className="font-semibold truncate">
                     {post.author.name}
                   </Link>
                   <div className="flex items-center space-x-2 text-sm text-muted-foreground">
@@ -98,7 +122,6 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
                     <span>{formatDistanceToNow(new Date(post.createdAt))} ago</span>
                   </div>
                 </div>
-                {/* Check if current user is the post author */}
                 {dbUserId === post.author.id && (
                   <DeleteAlertDialog isDeleting={isDeleting} onDelete={handleDeletePost} />
                 )}
@@ -120,16 +143,10 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
               <Button
                 variant="ghost"
                 size="sm"
-                className={`text-muted-foreground gap-2 ${
-                  hasLiked ? "text-red-500 hover:text-red-600" : "hover:text-red-500"
-                }`}
+                className={`text-muted-foreground gap-2 ${hasLiked ? "text-red-500 hover:text-red-600" : "hover:text-red-500"}`}
                 onClick={handleLike}
               >
-                {hasLiked ? (
-                  <HeartIcon className="size-5 fill-current" />
-                ) : (
-                  <HeartIcon className="size-5" />
-                )}
+                {hasLiked ? <HeartIcon className="size-5 fill-current" /> : <HeartIcon className="size-5" />}
                 <span>{optimisticLikes}</span>
               </Button>
             ) : (
@@ -147,9 +164,7 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
               className="text-muted-foreground gap-2 hover:text-blue-500"
               onClick={() => setShowComments((prev) => !prev)}
             >
-              <MessageCircleIcon
-                className={`size-5 ${showComments ? "fill-blue-500 text-blue-500" : ""}`}
-              />
+              <MessageCircleIcon className={`size-5 ${showComments ? "fill-blue-500 text-blue-500" : ""}`} />
               <span>{post.comments.length}</span>
             </Button>
           </div>
@@ -158,7 +173,6 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
           {showComments && (
             <div className="space-y-4 pt-4 border-t">
               <div className="space-y-4">
-                {/* DISPLAY COMMENTS */}
                 {post.comments.map((comment) => (
                   <div key={comment.id} className="flex space-x-3">
                     <Avatar className="size-8 flex-shrink-0">
@@ -167,20 +181,31 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <span className="font-medium text-sm">{comment.author.name}</span>
-                        <span className="text-sm text-muted-foreground">
-                          @{comment.author.username}
-                        </span>
+                        <span className="text-sm text-muted-foreground">@{comment.author.username}</span>
                         <span className="text-sm text-muted-foreground">·</span>
-                        <span className="text-sm text-muted-foreground">
-                          {formatDistanceToNow(new Date(comment.createdAt))} ago
-                        </span>
+                        <span className="text-sm text-muted-foreground">{formatDistanceToNow(new Date(comment.createdAt))} ago</span>
                       </div>
                       <p className="text-sm break-words">{comment.content}</p>
+                      {comment.author.id === dbUserId && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-2 text-red-500 hover:text-red-600"
+                          onClick={() => {
+                            setCommentToDelete(comment.id);
+                            setIsConfirmingDelete(true);
+                          }}
+                        >
+                          <DeleteIcon className="size-4" />
+                          Delete
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
 
+              {/* COMMENT INPUT */}
               {user ? (
                 <div className="flex space-x-3">
                   <Avatar className="size-8 flex-shrink-0">
@@ -200,14 +225,7 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
                         className="flex items-center gap-2"
                         disabled={!newComment.trim() || isCommenting}
                       >
-                        {isCommenting ? (
-                          "Posting..."
-                        ) : (
-                          <>
-                            <SendIcon className="size-4" />
-                            Comment
-                          </>
-                        )}
+                        {isCommenting ? "Posting..." : <><SendIcon className="size-4" />Comment</>}
                       </Button>
                     </div>
                   </div>
@@ -226,7 +244,15 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
           )}
         </div>
       </CardContent>
+
+      {/* Confirm Delete Dialog */}
+      <Dialog open={isConfirmingDelete} onOpenChange={setIsConfirmingDelete}>
+        <DialogContent>
+          <DialogTitle>Are you sure you want to delete this comment?</DialogTitle>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
+
 export default PostCard;

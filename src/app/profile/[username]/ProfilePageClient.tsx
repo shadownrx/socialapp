@@ -6,6 +6,8 @@ import PostCard from "@/components/PostCard";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import Username from "@/components/Username";
+
 import {
   Dialog,
   DialogClose,
@@ -31,7 +33,11 @@ import {
 import { useState } from "react";
 import toast from "react-hot-toast";
 
-type User = Awaited<ReturnType<typeof getProfileByUsername>>;
+type User = Awaited<ReturnType<typeof getProfileByUsername>> & {
+  publicMetadata?: {
+    verified?: boolean;
+  };
+};
 type Posts = Awaited<ReturnType<typeof getUserPosts>>;
 
 interface ProfilePageClientProps {
@@ -92,6 +98,14 @@ function ProfilePageClient({
 
   const formattedDate = format(new Date(user.createdAt), "MMMM yyyy");
 
+  {user.publicMetadata?.verified && (
+    <img src="/verificado.ico" alt="Verified" className="w-5 h-5" title="verified account" />
+  )}
+
+  function isVerified(username: string) {
+    return user.publicMetadata?.verified === true;
+  }
+
   return (
     <div className="max-w-3xl mx-auto">
       <div className="grid grid-cols-1 gap-6">
@@ -102,7 +116,12 @@ function ProfilePageClient({
                 <Avatar className="w-24 h-24">
                   <AvatarImage src={user.image ?? "/avatar.png"} />
                 </Avatar>
-                <h1 className="mt-4 text-2xl font-bold">{user.name ?? user.username}</h1>
+                <h1 className="mt-4 text-2xl font-bold flex items-center gap-1">
+                {user.name ?? user.username}
+                {isVerified(user.username) && (
+                 <img src="/verificado.ico" alt="Verified" className="w-5 h-5" title="verified account"/>
+                  )}
+                  </h1>
                 <p className="text-muted-foreground">@{user.username}</p>
                 <p className="mt-2 text-sm">{user.bio}</p>
 

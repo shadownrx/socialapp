@@ -1,13 +1,34 @@
-import { getRandomUsers } from "@/actions/user.action";
+"use client";
+
+import { useEffect, useState } from "react";
+import { getRandomUsers } from "@/actions/user.action"; // Asumiendo que esta es la función del servidor
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import Link from "next/link";
 import { Avatar, AvatarImage } from "./ui/avatar";
 import FollowButton from "./FollowButton";
 
-async function WhoToFollow() {
-  const users = await getRandomUsers();
+function WhoToFollow() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  if (users.length === 0) return null;
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const usersData = await getRandomUsers();
+        setUsers(usersData);
+      } catch (error) {
+        console.error("Error fetching random users:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, []); // Solo se ejecutará una vez después de montar el componente
+
+  if (loading) return <div>Loading...</div>;
+
+  if (users.length === 0) return <div>No users to follow</div>;
 
   return (
     <Card>
@@ -17,7 +38,7 @@ async function WhoToFollow() {
       <CardContent>
         <div className="space-y-4">
           {users.map((user) => (
-            <div key={user.id} className="flex gap-2 items-center justify-between ">
+            <div key={user.id} className="flex gap-2 items-center justify-between">
               <div className="flex items-center gap-1">
                 <Link href={`/profile/${user.username}`}>
                   <Avatar>
@@ -40,4 +61,5 @@ async function WhoToFollow() {
     </Card>
   );
 }
+
 export default WhoToFollow;

@@ -213,3 +213,29 @@ export async function deletePost(postId: string) {
     return { success: false, error: "Failed to delete post" };
   }
 }
+
+export async function deleteComment(commentId: string) {
+  try {
+    const userId = await getDbUserId(); // Obtén el ID del usuario actual
+
+    const comment = await prisma.comment.findUnique({
+      where: { id: commentId },
+      select: { authorId: true }, // Solo necesitamos saber quién es el autor
+    });
+
+    if (!comment) throw new Error("Comment not found");
+    if (comment.authorId !== userId) throw new Error("Unauthorized - no delete permission");
+
+    await prisma.comment.delete({
+      where: { id: commentId }, // Eliminar el comentario
+    });
+
+    // Actualizar el cache si es necesario (si estás usando revalidación de rutas)
+    revalidatePath("/"); // Puedes cambiar la ruta si solo se necesita revalidar el feed del post
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to delete comment:", error);
+    return { success: false, error: "Failed to delete comment" };
+  }
+}

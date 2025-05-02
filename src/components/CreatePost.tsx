@@ -1,4 +1,4 @@
-"use client";
+'use client'; // Asegurarnos de que todo el componente está dentro de un Client Component
 
 import { useUser } from "@clerk/nextjs";
 import { useState } from "react";
@@ -9,7 +9,7 @@ import { ImageIcon, Loader2Icon, SendIcon } from "lucide-react";
 import { Button } from "./ui/button";
 import { createPost } from "@/actions/post.action";
 import toast from "react-hot-toast";
-import ImageUpload from "./ImageUpload";
+import ImageUpload from "./ImageUpload"; // Asegúrate de que este también es un 'use client' si tiene interactividad
 
 function CreatePost() {
   const { user } = useUser();
@@ -25,7 +25,7 @@ function CreatePost() {
     try {
       const result = await createPost(content, imageUrl);
       if (result?.success) {
-        // reset the form
+        // Reset form
         setContent("");
         setImageUrl("");
         setShowImageUpload(false);
@@ -52,7 +52,7 @@ function CreatePost() {
               placeholder="What's on your mind?"
               className="min-h-[100px] resize-none border-none focus-visible:ring-0 p-0 text-base"
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={(e) => setContent(e.target.value)} // Este es un evento bien manejado
               disabled={isPosting}
             />
           </div>
@@ -77,7 +77,7 @@ function CreatePost() {
                 variant="ghost"
                 size="sm"
                 className="text-muted-foreground hover:text-primary"
-                onClick={() => setShowImageUpload(!showImageUpload)}
+                onClick={() => setShowImageUpload(!showImageUpload)} // Este también es correcto
                 disabled={isPosting}
               >
                 <ImageIcon className="size-4 mr-2" />
@@ -86,7 +86,7 @@ function CreatePost() {
             </div>
             <Button
               className="flex items-center"
-              onClick={handleSubmit}
+              onClick={handleSubmit} // Este es el manejador del evento 'onClick' correctamente ubicado
               disabled={(!content.trim() && !imageUrl) || isPosting}
             >
               {isPosting ? (
@@ -107,4 +107,5 @@ function CreatePost() {
     </Card>
   );
 }
+
 export default CreatePost;

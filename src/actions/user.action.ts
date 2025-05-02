@@ -66,19 +66,18 @@ export async function getDbUserId() {
 export async function getRandomUsers() {
   try {
     const userId = await getDbUserId();
-
     if (!userId) return [];
 
-    // get 3 random users exclude ourselves & users that we already follow
+    // Get 3 random users excluding ourselves and those we follow
     const randomUsers = await prisma.user.findMany({
       where: {
         AND: [
-          { NOT: { id: userId } },
+          { NOT: { id: userId } }, // Exclude ourselves
           {
             NOT: {
               followers: {
                 some: {
-                  followerId: userId,
+                  followerId: userId, // Exclude users we already follow
                 },
               },
             },
@@ -96,12 +95,16 @@ export async function getRandomUsers() {
           },
         },
       },
-      take: 3,
+      take: 3, // Limit to 3 random users
     });
+
+    if (randomUsers.length === 0) {
+      console.log("No random users found");
+    }
 
     return randomUsers;
   } catch (error) {
-    console.log("Error fetching random users", error);
+    console.log("Error fetching random users:", error);
     return [];
   }
 }
@@ -109,8 +112,7 @@ export async function getRandomUsers() {
 export async function toggleFollow(targetUserId: string) {
   try {
     const userId = await getDbUserId();
-
-    if (!userId) return;
+    if (!userId) return { success: false, error: "User not authenticated" };
 
     if (userId === targetUserId) throw new Error("You cannot follow yourself");
 
@@ -124,7 +126,7 @@ export async function toggleFollow(targetUserId: string) {
     });
 
     if (existingFollow) {
-      // unfollow
+      // Unfollow
       await prisma.follows.delete({
         where: {
           followerId_followingId: {
@@ -134,7 +136,7 @@ export async function toggleFollow(targetUserId: string) {
         },
       });
     } else {
-      // follow
+      // Follow
       await prisma.$transaction([
         prisma.follows.create({
           data: {
@@ -146,8 +148,8 @@ export async function toggleFollow(targetUserId: string) {
         prisma.notification.create({
           data: {
             type: "FOLLOW",
-            userId: targetUserId, // user being followed
-            creatorId: userId, // user following
+            userId: targetUserId,
+            creatorId: userId,
           },
         }),
       ]);
@@ -156,7 +158,7 @@ export async function toggleFollow(targetUserId: string) {
     revalidatePath("/");
     return { success: true };
   } catch (error) {
-    console.log("Error in toggleFollow", error);
+    console.log("Error in toggleFollow:", error);
     return { success: false, error: "Error toggling follow" };
   }
 }
