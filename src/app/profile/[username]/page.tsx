@@ -1,22 +1,18 @@
-import { notFound } from "next/navigation";
+// Componente de perfil cliente
+import { use } from "react";
 import { getProfileByUsername, getUserLikedPosts, getUserPosts, isFollowing } from "@/actions/profile.action";
 import ProfilePageClient from "./ProfilePageClient";
 
 // Página del perfil
-async function ProfilePageServer({ params }: { params: { username: string } }) {
-  const user = await getProfileByUsername(params.username);
+const ProfilePageClientComponent = ({ username }: { username: string }) => {
+  const user = use(getProfileByUsername(username));
+  if (!user) {
+    return <div>User not found</div>;
+  }
+  const posts = use(getUserPosts(user.id));
+  const likedPosts = use(getUserLikedPosts(user.id));
+  const isCurrentUserFollowing = use(isFollowing(user.id));
 
-  // Si el usuario no existe, muestra la página 404
-  if (!user) notFound();
-
-  // Obtener las publicaciones, publicaciones favoritas y si está siendo seguido
-  const [posts, likedPosts, isCurrentUserFollowing] = await Promise.all([
-    getUserPosts(user.id),
-    getUserLikedPosts(user.id),
-    isFollowing(user.id),
-  ]);
-
-  // Renderiza el componente de cliente con los datos obtenidos
   return (
     <ProfilePageClient
       user={user}
@@ -25,6 +21,6 @@ async function ProfilePageServer({ params }: { params: { username: string } }) {
       isFollowing={isCurrentUserFollowing}
     />
   );
-}
+};
 
-export default ProfilePageServer;
+export default ProfilePageClientComponent;
