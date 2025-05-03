@@ -28,8 +28,8 @@ function DesktopNavbar() {
         <>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center gap-2">
-                <FlameIcon className="w-4 h-4" />
+              <Button variant="ghost" className="flex items-center gap-2 hover:text-orange-500 transition-colors duration-200">
+                <FlameIcon className="w-4 h-4 hover:text-orange-500 transition-colors duration-200" />
                 <span className="hidden lg:inline">Match</span>
               </Button>
             </DropdownMenuTrigger>
@@ -71,7 +71,7 @@ function DesktopNavbar() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center gap-2">
+              <Button variant="ghost" className="flex items-center gap-2 hover:text-blue-700 transition-colors duration-200">
                 <SettingsIcon className="w-4 h-4" />
                 <span className="hidden lg:inline">Ajustes</span>
               </Button>
